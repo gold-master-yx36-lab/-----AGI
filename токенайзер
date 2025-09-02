@@ -1,0 +1,509 @@
+import re
+import math
+import time
+import json
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from typing import List, Dict, Tuple, Optional, Any, Set
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from enum import Enum
+import numpy as np
+from sentence_transformers import SentenceTransformer
+import networkx as nx
+
+# Константы золотого сечения
+PHI = 1.618033988749895
+FIBONACCI = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233]
+GOLDEN_ANGLE = 137.5
+MORPHIC_RESONANCE_THRESHOLD = 0.618
+
+class TokenType(Enum):
+    SYMBOL = "symbol"           # Уровень 0
+    MORPHEME = "morpheme"       # Уровень 1  
+    WORD = "word"              # Уровень 2
+    PHRASE = "phrase"          # Уровень 3
+    CONCEPT = "concept"        # Уровень 4
+    CONTEXT = "context"        # Уровень 5
+    SEMANTIC_CLUSTER = "semantic_cluster"  # Уровень 6
+    QUANTUM_SUPERPOSITION = "quantum_superposition"  # Уровень 7
+
+class ContextDomain(Enum):
+    GENERAL = "general"
+    TECHNICAL = "technical"
+    SCIENTIFIC = "scientific"
+    CREATIVE = "creative"
+    EMOTIONAL = "emotional"
+    PHILOSOPHICAL = "philosophical"
+    MATHEMATICAL = "mathematical"
+
+@dataclass
+class QuantumToken:
+    """Токен, который может существовать в суперпозиции состояний"""
+    base_form: str
+    superposition_states: Dict[str, float]  # состояние -> вероятность
+    coherence_time: float
+    semantic_embedding: Optional[torch.Tensor] = None
+    fractal_level: int = 0
+    morphic_resonance: float = 0.0
+    
+    def collapse(self, context_embedding: torch.Tensor) -> str:
+        """Коллапсирует суперпозицию в конкретное состояние"""
+        if time.time() > self.coherence_time:
+            # Декогеренция - возвращаем базовую форму
+            return self.base_form
+        
+        # Вычисляем вероятности коллапса на основе контекста
+        if self.semantic_embedding is not None:
+            context_similarity = F.cosine_similarity(
+                context_embedding, self.semantic_embedding, dim=0
+            ).item()
+            # Модифицируем вероятности
+            modified_probs = {
+                state: prob * (1 + context_similarity * 0.5)
+                for state, prob in self.superposition_states.items()
+            }
+        else:
+            modified_probs = self.superposition_states
+        
+        # Нормализуем и выбираем состояние
+        total_prob = sum(modified_probs.values())
+        normalized_probs = {k: v/total_prob for k, v in modified_probs.items()}
+        
+        # Вероятностный выбор
+        rand_val = np.random.random()
+        cumulative = 0.0
+        for state, prob in normalized_probs.items():
+            cumulative += prob
+            if rand_val <= cumulative:
+                return state
+        
+        return self.base_form
+
+@dataclass 
+class MorphicPattern:
+    """Паттерн в морфогенетическом поле"""
+    pattern_id: str
+    text_pattern: str
+    frequency: int
+    resonance_strength: float
+    semantic_embedding: torch.Tensor
+    creation_time: float
+    last_reinforcement: float
+
+class SemanticGraph:
+    """Упрощенная версия семантического графа для токенайзера"""
+    def __init__(self):
+        self.graph = nx.DiGraph()
+        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.node_embeddings: Dict[str, torch.Tensor] = {}
+    
+    def add_concept(self, concept: str, context: ContextDomain) -> None:
+        """Добавляет концепт в граф"""
+        if concept not in self.graph:
+            embedding = torch.tensor(self.embedding_model.encode(concept))
+            self.graph.add_node(concept, context=context)
+            self.node_embeddings[concept] = embedding
+    
+    def find_semantic_neighbors(self, concept: str, threshold: float = 0.7) -> List[str]:
+        """Находит семантически близкие концепты"""
+        if concept not in self.node_embeddings:
+            return []
+        
+        concept_embedding = self.node_embeddings[concept]
+        neighbors = []
+        
+        for other_concept, other_embedding in self.node_embeddings.items():
+            if other_concept != concept:
+                similarity = F.cosine_similarity(
+                    concept_embedding, other_embedding, dim=0
+                ).item()
+                if similarity > threshold:
+                    neighbors.append(other_concept)
+        
+        return neighbors
+
+class FractalTokenHierarchy:
+    """Фрактальная иерархия токенов"""
+    def __init__(self, max_depth: int = 8):
+        self.max_depth = max_depth
+        self.level_processors = nn.ModuleDict()
+        
+        # Создаем процессоры для каждого уровня
+        for level in range(max_depth):
+            scale_factor = PHI ** (-level)
+            hidden_dim = int(256 * scale_factor)
+            self.level_processors[f"level_{level}"] = nn.Sequential(
+                nn.Linear(384, hidden_dim),  # 384 - размер эмбеддинга SentenceTransformer
+                nn.ReLU(),
+                nn.Linear(hidden_dim, 384)
+            )
+    
+    def process_at_level(self, text_embedding: torch.Tensor, level: int) -> torch.Tensor:
+        """Обрабатывает текст на определенном фрактальном уровне"""
+        if level >= self.max_depth:
+            level = self.max_depth - 1
+        
+        processor = self.level_processors[f"level_{level}"]
+        return processor(text_embedding)
+
+class MorphogeneticField:
+    """Морфогенетическое поле для эволюции токенов"""
+    def __init__(self, resonance_threshold: float = MORPHIC_RESONANCE_THRESHOLD):
+        self.patterns: Dict[str, MorphicPattern] = {}
+        self.resonance_threshold = resonance_threshold
+        self.pattern_counter = 0
+        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    
+    def add_pattern(self, text_pattern: str) -> None:
+        """Добавляет паттерн в поле"""
+        if text_pattern in self.patterns:
+            # Усиливаем существующий паттерн
+            pattern = self.patterns[text_pattern]
+            pattern.frequency += 1
+            pattern.resonance_strength *= PHI * 0.1  # Растет по золотому сечению
+            pattern.last_reinforcement = time.time()
+        else:
+            # Создаем новый паттерн
+            embedding = torch.tensor(self.embedding_model.encode(text_pattern))
+            pattern = MorphicPattern(
+                pattern_id=f"pattern_{self.pattern_counter}",
+                text_pattern=text_pattern,
+                frequency=1,
+                resonance_strength=1.0,
+                semantic_embedding=embedding,
+                creation_time=time.time(),
+                last_reinforcement=time.time()
+            )
+            self.patterns[text_pattern] = pattern
+            self.pattern_counter += 1
+    
+    def get_resonant_patterns(self, text: str, k: int = 5) -> List[MorphicPattern]:
+        """Находит паттерны, резонирующие с текстом"""
+        if not self.patterns:
+            return []
+        
+        text_embedding = torch.tensor(self.embedding_model.encode(text))
+        resonances = []
+        
+        for pattern in self.patterns.values():
+            similarity = F.cosine_similarity(
+                text_embedding, pattern.semantic_embedding, dim=0
+            ).item()
+            
+            # Учитываем частоту и время
+            time_decay = math.exp(-(time.time() - pattern.last_reinforcement) / 86400)  # день
+            resonance_score = similarity * pattern.resonance_strength * time_decay
+            
+            if resonance_score > self.resonance_threshold:
+                resonances.append((pattern, resonance_score))
+        
+        # Сортируем по резонансу
+        resonances.sort(key=lambda x: x[1], reverse=True)
+        return [pattern for pattern, _ in resonances[:k]]
+    
+    def should_become_token(self, pattern: MorphicPattern) -> bool:
+        """Определяет, должен ли паттерн стать токеном"""
+        frequency_threshold = FIBONACCI[4]  # 5
+        resonance_threshold = PHI * 0.5
+        
+        return (pattern.frequency >= frequency_threshold and 
+                pattern.resonance_strength >= resonance_threshold)
+
+class FractalSemanticTokenizer:
+    """Главный класс фрактально-семантического токенайзера"""
+    
+    def __init__(self, vocab_size: int = 50000):
+        self.vocab_size = vocab_size
+        self.semantic_graph = SemanticGraph()
+        self.fractal_hierarchy = FractalTokenHierarchy()
+        self.morphic_field = MorphogeneticField()
+        
+        # Словари токенов по уровням
+        self.token_to_id: Dict[str, int] = {}
+        self.id_to_token: Dict[int, str] = {}
+        self.token_levels: Dict[str, int] = {}
+        self.quantum_tokens: Dict[str, QuantumToken] = {}
+        
+        # Контекстные детекторы
+        self.context_detectors = {
+            ContextDomain.TECHNICAL: re.compile(r'\b(algorithm|function|variable|class|method|API|framework)\b', re.I),
+            ContextDomain.SCIENTIFIC: re.compile(r'\b(hypothesis|experiment|analysis|research|data|statistics)\b', re.I),
+            ContextDomain.MATHEMATICAL: re.compile(r'\b(equation|formula|theorem|proof|integral|derivative)\b', re.I),
+            ContextDomain.EMOTIONAL: re.compile(r'\b(feel|emotion|happy|sad|angry|love|hate|joy)\b', re.I),
+        }
+        
+        # Специальные токены
+        self.special_tokens = {
+            '<PAD>': 0, '<UNK>': 1, '<START>': 2, '<END>': 3,
+            '<SUPERPOSITION>': 4, '<QUANTUM_COLLAPSE>': 5,
+            '<MORPHIC_RESONANCE>': 6, '<FRACTAL_PATTERN>': 7
+        }
+        
+        self._init_vocabulary()
+    
+    def _init_vocabulary(self) -> None:
+        """Инициализирует базовый словарь"""
+        current_id = len(self.special_tokens)
+        
+        for token, token_id in self.special_tokens.items():
+            self.token_to_id[token] = token_id
+            self.id_to_token[token_id] = token
+        
+        # Базовые символы и морфемы
+        basic_patterns = [
+            # Символы (уровень 0)
+            *list('абвгдеёжзийклмнопрстуфхцчшщъыьэюя'),
+            *list('abcdefghijklmnopqrstuvwxyz'),
+            *list('0123456789'),
+            *list('.,!?;:()[]{}"\'-+=*/%@#$^&|\\`~'),
+            
+            # Базовые морфемы (уровень 1)
+            'пре', 'пост', 'анти', 'про', 'кон', 'де', 'ре',
+            'pre', 'post', 'anti', 'pro', 'con', 'de', 're',
+            'ing', 'tion', 'ness', 'ment', 'able', 'less',
+        ]
+        
+        for pattern in basic_patterns:
+            if pattern not in self.token_to_id:
+                self.token_to_id[pattern] = current_id
+                self.id_to_token[current_id] = pattern
+                self.token_levels[pattern] = 0 if len(pattern) == 1 else 1
+                current_id += 1
+    
+    def detect_context(self, text: str) -> ContextDomain:
+        """Определяет контекстную область текста"""
+        scores = {}
+        for domain, pattern in self.context_detectors.items():
+            matches = len(pattern.findall(text))
+            scores[domain] = matches
+        
+        if not scores or max(scores.values()) == 0:
+            return ContextDomain.GENERAL
+        
+        return max(scores, key=scores.get)
+    
+    def create_quantum_superposition(self, base_text: str, context: ContextDomain) -> QuantumToken:
+        """Создает токен в квантовой суперпозиции"""
+        # Генерируем возможные интерпретации на основе контекста
+        superposition_states = {base_text: 0.6}  # Базовая интерпретация
+        
+        # Добавляем контекстно-зависимые интерпретации
+        if context == ContextDomain.TECHNICAL:
+            if base_text.lower() in ['run', 'execute', 'call']:
+                superposition_states['execute_function'] = 0.3
+                superposition_states['system_call'] = 0.1
+        elif context == ContextDomain.MATHEMATICAL:
+            if base_text.lower() in ['set', 'group', 'field']:
+                superposition_states['mathematical_set'] = 0.3
+                superposition_states['algebraic_structure'] = 0.1
+        
+        # Нормализуем вероятности
+        total_prob = sum(superposition_states.values())
+        normalized_states = {k: v/total_prob for k, v in superposition_states.items()}
+        
+        # Создаем квантовый токен
+        embedding = torch.tensor(self.semantic_graph.embedding_model.encode(base_text))
+        coherence_time = time.time() + (PHI * 10.0)  # 10 секунд когерентности
+        
+        return QuantumToken(
+            base_form=base_text,
+            superposition_states=normalized_states,
+            coherence_time=coherence_time,
+            semantic_embedding=embedding,
+            fractal_level=2,  # Слова - уровень 2
+            morphic_resonance=1.0
+        )
+    
+    def fractal_segment(self, text: str, level: int) -> List[str]:
+        """Сегментирует текст на определенном фрактальном уровне"""
+        if level == 0:  # Символы
+            return list(text)
+        elif level == 1:  # Морфемы
+            return self._segment_morphemes(text)
+        elif level == 2:  # Слова
+            return re.findall(r'\b\w+\b|[^\w\s]', text)
+        elif level == 3:  # Фразы
+            return re.split(r'[.!?;]', text)
+        elif level == 4:  # Концепты
+            return self._extract_concepts(text)
+        else:  # Высокие уровни - семантические кластеры
+            return [text]  # Упрощенная реализация
+    
+    def _segment_morphemes(self, text: str) -> List[str]:
+        """Простая сегментация на морфемы"""
+        # Упрощенная реализация - разбиваем по общим морфемам
+        morpheme_patterns = [
+            r'(\w*)(ing|tion|ness|ment|able|less|ful)(\w*)',
+            r'(\w*)(пре|пост|анти|про|кон|де|ре)(\w*)',
+        ]
+        
+        words = re.findall(r'\b\w+\b', text)
+        morphemes = []
+        
+        for word in words:
+            found_morphemes = False
+            for pattern in morpheme_patterns:
+                match = re.match(pattern, word, re.I)
+                if match:
+                    morphemes.extend([part for part in match.groups() if part])
+                    found_morphemes = True
+                    break
+            
+            if not found_morphemes:
+                # Простое разбиение на слоги как приближение к морфемам
+                syllables = re.findall(r'[аеёиоуыэюяaeiouy][^аеёиоуыэюяaeiouy]*', word, re.I)
+                morphemes.extend(syllables if syllables else [word])
+        
+        return morphemes
+    
+    def _extract_concepts(self, text: str) -> List[str]:
+        """Извлекает концепты из текста"""
+        # Ищем словосочетания и именованные сущности
+        concept_patterns = [
+            r'\b[A-ZА-Я][a-zа-я]+\s+[A-ZА-Я][a-zа-я]+\b',  # Имена собственные
+            r'\b\w+\s+\w+ing\b',  # Технические термины
+            r'\b[a-zа-я]+\s+[a-zа-я]+\s+[a-zа-я]+\b',  # Трехсловные фразы
+        ]
+        
+        concepts = []
+        for pattern in concept_patterns:
+            concepts.extend(re.findall(pattern, text, re.I))
+        
+        # Добавляем отдельные значимые слова
+        significant_words = re.findall(r'\b[a-zа-я]{4,}\b', text, re.I)
+        concepts.extend(significant_words)
+        
+        return list(set(concepts))  # Убираем дубли
+    
+    def adaptive_tokenize(self, text: str) -> List[int]:
+        """Адаптивная токенизация с учетом всех принципов"""
+        # 1. Определяем контекст
+        context = self.detect_context(text)
+        
+        # 2. Добавляем паттерн в морфогенетическое поле
+        self.morphic_field.add_pattern(text)
+        
+        # 3. Ищем резонирующие паттерны
+        resonant_patterns = self.morphic_field.get_resonant_patterns(text)
+        
+        # 4. Многоуровневая сегментация
+        tokens = []
+        
+        # Начинаем с базового уровня слов
+        base_segments = self.fractal_segment(text, level=2)
+        
+        for segment in base_segments:
+            # Проверяем, есть ли этот сегмент в морфогенетическом поле
+            segment_patterns = self.morphic_field.get_resonant_patterns(segment, k=1)
+            
+            if segment_patterns and self.morphic_field.should_become_token(segment_patterns[0]):
+                # Сегмент достаточно резонирует - становится токеном
+                token_id = self._get_or_create_token_id(segment, level=4)  # Концептуальный уровень
+                tokens.append(token_id)
+            else:
+                # Обычная токенизация с возможной квантовой суперпозицией
+                if self._should_create_quantum_token(segment, context):
+                    quantum_token = self.create_quantum_superposition(segment, context)
+                    self.quantum_tokens[segment] = quantum_token
+                    # Для простоты сейчас коллапсируем сразу
+                    context_embedding = torch.tensor(self.semantic_graph.embedding_model.encode(text))
+                    collapsed_form = quantum_token.collapse(context_embedding)
+                    token_id = self._get_or_create_token_id(collapsed_form, level=2)
+                else:
+                    token_id = self._get_or_create_token_id(segment, level=2)
+                
+                tokens.append(token_id)
+        
+        return tokens
+    
+    def _should_create_quantum_token(self, segment: str, context: ContextDomain) -> bool:
+        """Определяет, стоит ли создать квантовый токен"""
+        # Создаем квантовые токены для многозначных слов в специальных контекстах
+        ambiguous_words = {'run', 'set', 'call', 'field', 'class', 'object', 'function'}
+        return (segment.lower() in ambiguous_words and 
+                context in [ContextDomain.TECHNICAL, ContextDomain.MATHEMATICAL])
+    
+    def _get_or_create_token_id(self, token: str, level: int) -> int:
+        """Получает или создает ID для токена"""
+        if token in self.token_to_id:
+            return self.token_to_id[token]
+        
+        # Создаем новый токен, если есть место в словаре
+        if len(self.token_to_id) < self.vocab_size:
+            new_id = len(self.token_to_id)
+            self.token_to_id[token] = new_id
+            self.id_to_token[new_id] = token
+            self.token_levels[token] = level
+            return new_id
+        else:
+            # Словарь полон, возвращаем UNK
+            return self.special_tokens['<UNK>']
+    
+    def decode(self, token_ids: List[int]) -> str:
+        """Декодирует последовательность ID в текст"""
+        tokens = []
+        for token_id in token_ids:
+            if token_id in self.id_to_token:
+                tokens.append(self.id_to_token[token_id])
+            else:
+                tokens.append('<UNK>')
+        
+        # Простое соединение токенов
+        return ' '.join(tokens)
+    
+    def get_tokenizer_stats(self) -> Dict[str, Any]:
+        """Возвращает статистику токенайзера"""
+        level_counts = defaultdict(int)
+        for token, level in self.token_levels.items():
+            level_counts[level] += 1
+        
+        return {
+            'vocab_size': len(self.token_to_id),
+            'quantum_tokens': len(self.quantum_tokens),
+            'morphic_patterns': len(self.morphic_field.patterns),
+            'level_distribution': dict(level_counts),
+            'resonant_patterns_count': sum(1 for p in self.morphic_field.patterns.values() 
+                                         if p.resonance_strength > MORPHIC_RESONANCE_THRESHOLD)
+        }
+
+# Пример использования
+if __name__ == "__main__":
+    # Создаем токенайзер
+    tokenizer = FractalSemanticTokenizer(vocab_size=10000)
+    
+    # Тестовые тексты разных типов
+    test_texts = [
+        "Machine learning algorithms can run efficiently on modern hardware.",
+        "The function returns a set of values from the database.",
+        "I feel happy when solving complex mathematical problems.",
+        "The golden ratio appears in nature's fractal patterns.",
+        "Quantum superposition allows particles to exist in multiple states."
+    ]
+    
+    print("=== Фрактально-Семантический Токенайзер ===\n")
+    
+    
+    for i, text in enumerate(test_texts, 1):
+        print(f"Тест {i}: {text}")
+        
+        # Определяем контекст
+        context = tokenizer.detect_context(text)
+        print(f"Контекст: {context.value}")
+        
+        # Токенизируем
+        token_ids = tokenizer.adaptive_tokenize(text)
+        print(f"Токены (ID): {token_ids}")
+        
+        # Декодируем обратно
+        decoded = tokenizer.decode(token_ids)
+        print(f"Декодировано: {decoded}")
+        
+        print("-" * 50)
+    
+    # Показываем статистику
+    stats = tokenizer.get_tokenizer_stats()
+    print("\n=== Статистика токенайзера ===")
+    for key, value in stats.items():
+        print(f"{key}: {value}")
